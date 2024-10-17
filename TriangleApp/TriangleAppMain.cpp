@@ -1,8 +1,6 @@
 #include "TriangleAppMain.h"
 
 namespace TriangleApp {
-    TriangleAppMain::TriangleAppMain() {
-    }
 
     void TriangleAppMain::Run() {
         InitVulkan();
