@@ -1,13 +1,15 @@
 #include <exception>
 #include <iostream>
 
-#include "TriangleApp/TriangleApp.h"
+#include "TriangleApp/TriangleAppMain.h"
+
+using namespace TriangleApp;
 
 int main() {
-    TriangleApp::TriangleApp* triangleApp = new TriangleApp::TriangleApp();
+    TriangleAppMain triangleApp;
 
     try {
-        triangleApp->Run();
+        triangleApp.Run();
     }catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
 
