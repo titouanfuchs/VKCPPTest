@@ -10,7 +10,7 @@ VulkanCPPTest: main.cpp
 
 .PHONY: test clean
 
-test: VulkanCPPTest
+run: VulkanCPPTest
 	./VulkanCPPTest
 
 clean:
