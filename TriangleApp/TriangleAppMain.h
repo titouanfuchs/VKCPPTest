@@ -3,6 +3,8 @@
 #include <cstdint>
 
 class GLFWwindow;
+class VkInstance_T;
+
 namespace TriangleApp {
 
     class TriangleAppMain {
@@ -16,6 +18,7 @@ namespace TriangleApp {
         private:
 
             GLFWwindow* Window = nullptr;
+            VkInstance_T* VKInstance;
 
             void InitWindow();
             void InitVulkan();
