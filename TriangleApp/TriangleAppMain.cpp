@@ -1,11 +1,11 @@
 #define GLFW_INCLUDE_VULKAN
 #include "TriangleAppMain.h"
 
+#include <cstring>
 #include <GLFW/glfw3.h>
 
-#include "TriangleAppMain.h"
-
 #include <iostream>
+#include <vector>
 
 namespace TriangleApp {
 
@@ -30,6 +30,15 @@ namespace TriangleApp {
     void TriangleAppMain::InitVulkan() {
         std::cout << "Init Vulkan" << std::endl;
 
+        CreateInstance();
+    }
+
+    void TriangleAppMain::CreateInstance() {
+
+        if (enableValidationLayers && !checkValidationLayerSupport()) {
+            throw std::runtime_error("Validation layers requested, but not available!");
+        }
+
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Hello Triangle";
@@ -44,7 +53,7 @@ namespace TriangleApp {
 
         uint32_t glfwExtensionCount = 0;
 
-        const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
         createInfo.enabledExtensionCount = glfwExtensionCount;
         createInfo.ppEnabledExtensionNames = glfwExtensions;
@@ -52,6 +61,23 @@ namespace TriangleApp {
         createInfo.enabledLayerCount = 0;
 
         VkResult result = vkCreateInstance(&createInfo, nullptr, &VKInstance);
+
+        if (vkCreateInstance(&createInfo, nullptr, &VKInstance) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create instance!");
+        }
+
+        uint32_t extensionsCount = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, nullptr);
+
+        std::vector<VkExtensionProperties> extensions(extensionsCount);
+
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, extensions.data());
+
+        std::cout << "available extensions: \n";
+
+        for (const auto& extension : extensions) {
+            std::cout << "\t" << extension.extensionName << "\n";
+        }
     }
 
     void TriangleAppMain::MainLoop() {
@@ -64,7 +90,33 @@ namespace TriangleApp {
     void TriangleAppMain::Cleanup() {
         std::cout << "End" << std::endl;
 
+        vkDestroyInstance(VKInstance, nullptr);
+
         glfwDestroyWindow(Window);
         glfwTerminate();
+    }
+
+    bool TriangleAppMain::checkValidationLayerSupport() const {
+        uint32_t layerCount;
+
+        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+        std::vector<VkLayerProperties> availableLayers(layerCount);
+        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        for (const char* layerName : validationLayers) {
+            bool layerFound = false;
+
+            for (const auto& layerProperties : availableLayers) {
+                if (strcmp(layerName, layerProperties.layerName) == 0) {
+                    layerFound = true;
+                    break;
+                }
+            }
+
+            if (!layerFound) return false;
+        }
+
+        return true;
     }
 }
