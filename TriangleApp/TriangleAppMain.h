@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 class GLFWwindow;
 class VkInstance_T;
@@ -40,6 +41,9 @@ namespace TriangleApp {
             void Cleanup();
 
             bool checkValidationLayerSupport() const;
+
+            void populateDebugMEssengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerCreateInfo);
+            void setupDebugMessenger();
     };
 
 }

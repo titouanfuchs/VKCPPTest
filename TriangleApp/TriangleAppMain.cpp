@@ -58,7 +58,12 @@ namespace TriangleApp {
         createInfo.enabledExtensionCount = glfwExtensionCount;
         createInfo.ppEnabledExtensionNames = glfwExtensions;
 
-        createInfo.enabledLayerCount = 0;
+        if (enableValidationLayers) {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            createInfo.ppEnabledLayerNames = validationLayers.data();
+        } else {
+            createInfo.enabledLayerCount = 0;
+        }
 
         VkResult result = vkCreateInstance(&createInfo, nullptr, &VKInstance);
 
@@ -118,5 +123,17 @@ namespace TriangleApp {
         }
 
         return true;
+    }
+
+    void TriangleAppMain::populateDebugMEssengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &messengerCreateInfo) {
+        messengerCreateInfo = {};
+
+        messengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        messengerCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        messengerCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        messengerCreateInfo.pfnUserCallback = debugCallback;
+    }
+
+    void TriangleAppMain::setupDebugMessenger() {
     }
 }
