@@ -20,7 +20,8 @@ namespace TriangleApp {
         private:
 
             GLFWwindow* Window = nullptr;
-            VkInstance_T* VKInstance;
+            VkInstance VKInstance;
+            VkDebugUtilsMessengerEXT DebugMessenger;
 
             const std::vector<const char*> validationLayers = {
                 "VK_LAYER_KHRONOS_validation"
@@ -45,11 +46,16 @@ namespace TriangleApp {
 
             void populateDebugMEssengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerCreateInfo);
             void setupDebugMessenger();
+            VkResult createDebugMessenger(VkInstance instance,
+                const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+                const VkAllocationCallbacks* pAllocator,
+                VkDebugUtilsMessengerEXT*pDebugMessenger);
+            void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
 
-        static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-            VkDebugUtilsMessageTypeFlagsEXT messageType,
-            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-            void* pUserData);
+            static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                VkDebugUtilsMessageTypeFlagsEXT messageType,
+                const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                void* pUserData);
     };
 
 }
