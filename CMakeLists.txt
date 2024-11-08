@@ -6,6 +6,7 @@ project(VKCPPTest)
 find_package(Vulkan REQUIRED FATAL_ERROR)
 find_package(glfw3 REQUIRED FATAL_ERROR)
 
-add_executable(VKCPPTest main.cpp TriangleApp/TriangleAppMain.h TriangleApp/TriangleAppMain.cpp)
+add_executable(VKCPPTest main.cpp TriangleApp/TriangleAppMain.h TriangleApp/TriangleAppMain.cpp
+        TriangleApp/FQueueFamilyIndices.h)
 
 target_link_libraries(VKCPPTest glfw vulkan)

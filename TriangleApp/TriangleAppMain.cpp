@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 
+#include "FQueueFamilyIndices.h"
+
 namespace TriangleApp {
 
     void TriangleAppMain::Run() {
@@ -31,8 +33,67 @@ namespace TriangleApp {
         std::cout << "Init Vulkan" << std::endl;
 
         CreateInstance();
-
         setupDebugMessenger();
+        pickPhysicalDevice();
+        createLogicalDevice();
+    }
+
+    void TriangleAppMain::pickPhysicalDevice() {
+        uint32_t deviceCount = 0;
+
+        vkEnumeratePhysicalDevices(VKInstance, &deviceCount, nullptr);
+
+        if (deviceCount == 0)
+            throw std::runtime_error("Failed to find GPUs with Vk support");
+
+        std::vector<VkPhysicalDevice> devices(deviceCount);
+        vkEnumeratePhysicalDevices(VKInstance, &deviceCount, nullptr);
+
+        for (const auto& device : devices) {
+            if (isDeviceSuitable(device))
+                VKPhysicalDevice = device;
+                break;
+        }
+
+        if (VKPhysicalDevice == VK_NULL_HANDLE)
+            throw std::runtime_error("Failed to find a suitable GPU");
+    }
+
+    void TriangleAppMain::createLogicalDevice() {
+        FQueueFamilyIndices indices = findQueueFamilies(VKPhysicalDevice);
+    }
+
+    bool TriangleAppMain::isDeviceSuitable(VkPhysicalDevice device) {
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        FQueueFamilyIndices indices = findQueueFamilies(device);
+
+        return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader && indices.isComplete();
+    }
+
+    FQueueFamilyIndices TriangleAppMain::findQueueFamilies(VkPhysicalDevice device) {
+        FQueueFamilyIndices indices;
+
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        int i = 0;
+        for (const auto& queueFamily : queueFamilies) {
+            if (queueFamily.queueFlags && VK_QUEUE_GRAPHICS_BIT) {
+                indices.graphicsFamily = i;
+            }
+
+            i++;
+        }
+
+        return indices;
     }
 
     void TriangleAppMain::CreateInstance() {
@@ -106,6 +167,8 @@ namespace TriangleApp {
         glfwTerminate();
     }
 
+#pragma region Validation & Extensions
+
     bool TriangleAppMain::checkValidationLayerSupport() const {
         uint32_t layerCount;
 
@@ -142,8 +205,10 @@ namespace TriangleApp {
 
         return extensions;
     }
+#pragma endregion
 
-    void TriangleAppMain::populateDebugMEssengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &messengerCreateInfo) {
+#pragma region Debug
+    void TriangleAppMain::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &messengerCreateInfo) {
         messengerCreateInfo = {};
 
         messengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -152,15 +217,12 @@ namespace TriangleApp {
         messengerCreateInfo.pfnUserCallback = debugCallback;
     }
 
+
     void TriangleAppMain::setupDebugMessenger() {
         if (!enableValidationLayers) return;
 
-        VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        createInfo.pfnUserCallback = debugCallback;
-        createInfo.pUserData = nullptr; // Optional
+        VkDebugUtilsMessengerCreateInfoEXT createInfo;
+        populateDebugMessengerCreateInfo(createInfo);
 
         if (createDebugMessenger(VKInstance, &createInfo, nullptr, &DebugMessenger) != VK_SUCCESS) {
             throw std::runtime_error("failed to set up debug messenger !");
@@ -197,4 +259,5 @@ namespace TriangleApp {
 
         return VK_FALSE;
     }
+#pragma endregion
 }

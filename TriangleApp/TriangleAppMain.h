@@ -4,6 +4,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
+struct FQueueFamilyIndices;
 class GLFWwindow;
 class VkInstance_T;
 
@@ -21,6 +22,8 @@ namespace TriangleApp {
 
             GLFWwindow* Window = nullptr;
             VkInstance VKInstance;
+            VkPhysicalDevice VKPhysicalDevice = VK_NULL_HANDLE;
+            VkDevice VKDevice;
             VkDebugUtilsMessengerEXT DebugMessenger;
 
             const std::vector<const char*> validationLayers = {
@@ -34,7 +37,12 @@ namespace TriangleApp {
 #endif
 
             void InitWindow();
+
             void InitVulkan();
+            void pickPhysicalDevice();
+            void createLogicalDevice();
+            bool isDeviceSuitable(VkPhysicalDevice device);
+            FQueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
             void CreateInstance();
 
@@ -44,7 +52,9 @@ namespace TriangleApp {
             bool checkValidationLayerSupport() const;
             std::vector<const char*> getRequiredExtensions() const;
 
-            void populateDebugMEssengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerCreateInfo);
+#pragma region Debug
+
+            void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerCreateInfo);
             void setupDebugMessenger();
             VkResult createDebugMessenger(VkInstance instance,
                 const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
@@ -56,6 +66,7 @@ namespace TriangleApp {
                 VkDebugUtilsMessageTypeFlagsEXT messageType,
                 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                 void* pUserData);
+#pragma endregion
     };
 
 }
