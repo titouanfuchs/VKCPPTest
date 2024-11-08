@@ -41,9 +41,15 @@ namespace TriangleApp {
             void Cleanup();
 
             bool checkValidationLayerSupport() const;
+            std::vector<const char*> getRequiredExtensions() const;
 
             void populateDebugMEssengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerCreateInfo);
             void setupDebugMessenger();
+
+        static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT messageType,
+            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+            void* pUserData);
     };
 
 }

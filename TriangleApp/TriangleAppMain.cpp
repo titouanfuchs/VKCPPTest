@@ -53,10 +53,10 @@ namespace TriangleApp {
 
         uint32_t glfwExtensionCount = 0;
 
-        const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        auto glfwExtensions = getRequiredExtensions();
 
-        createInfo.enabledExtensionCount = glfwExtensionCount;
-        createInfo.ppEnabledExtensionNames = glfwExtensions;
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(glfwExtensions.size());
+        createInfo.ppEnabledExtensionNames = glfwExtensions.data();
 
         if (enableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
@@ -125,6 +125,19 @@ namespace TriangleApp {
         return true;
     }
 
+    std::vector<const char *> TriangleAppMain::getRequiredExtensions() const {
+        uint32_t glfwExtensionCount = 0;
+        const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+        if (enableValidationLayers) {
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+
+        return extensions;
+    }
+
     void TriangleAppMain::populateDebugMEssengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &messengerCreateInfo) {
         messengerCreateInfo = {};
 
@@ -135,5 +148,15 @@ namespace TriangleApp {
     }
 
     void TriangleAppMain::setupDebugMessenger() {
+
+    }
+
+    VkBool32 TriangleAppMain::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+        void *pUserData) {
+
+        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+        return VK_FALSE;
     }
 }
