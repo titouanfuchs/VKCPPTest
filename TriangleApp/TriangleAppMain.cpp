@@ -47,7 +47,7 @@ namespace TriangleApp {
             throw std::runtime_error("Failed to find GPUs with Vk support");
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(VKInstance, &deviceCount, nullptr);
+        vkEnumeratePhysicalDevices(VKInstance, &deviceCount, devices.data());
 
         for (const auto& device : devices) {
             if (isDeviceSuitable(device))
@@ -61,9 +61,43 @@ namespace TriangleApp {
 
     void TriangleAppMain::createLogicalDevice() {
         FQueueFamilyIndices indices = findQueueFamilies(VKPhysicalDevice);
+
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        queueCreateInfo.queueCount = 1;
+
+        float queuePriority = 1.0f;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        VkPhysicalDeviceFeatures deviceFeatures{};
+
+        VkDeviceCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        createInfo.pQueueCreateInfos = &queueCreateInfo;
+        createInfo.queueCreateInfoCount = 1;
+        createInfo.pEnabledFeatures = &deviceFeatures;
+
+        createInfo.enabledExtensionCount = 0;
+
+        if (enableValidationLayers) {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            createInfo.ppEnabledLayerNames = validationLayers.data();
+        }else {
+            createInfo.enabledLayerCount = 0;
+        }
+
+        if (vkCreateDevice(VKPhysicalDevice, &createInfo, nullptr, &VKDevice) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create logical device");
+        }
+
+        vkGetDeviceQueue(VkDevice(VKDevice), indices.graphicsFamily.value(), 0, &VKQueue);
     }
 
     bool TriangleAppMain::isDeviceSuitable(VkPhysicalDevice device) {
+        if (device == nullptr)
+            throw std::runtime_error("Cannot check suitability of NULL device");
+
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
@@ -157,6 +191,8 @@ namespace TriangleApp {
 
     void TriangleAppMain::Cleanup() {
         std::cout << "End" << std::endl;
+
+        vkDestroyDevice(VKDevice, nullptr);
 
         if (enableValidationLayers)
             destroyDebugUtilsMessengerEXT(VKInstance, DebugMessenger, nullptr);

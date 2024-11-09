@@ -24,6 +24,7 @@ namespace TriangleApp {
             VkInstance VKInstance;
             VkPhysicalDevice VKPhysicalDevice = VK_NULL_HANDLE;
             VkDevice VKDevice;
+            VkQueue VKQueue;
             VkDebugUtilsMessengerEXT DebugMessenger;
 
             const std::vector<const char*> validationLayers = {
