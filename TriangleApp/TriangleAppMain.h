@@ -4,6 +4,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
+struct FSwapChainSupportDetails;
 struct FQueueFamilyIndices;
 class GLFWwindow;
 class VkInstance_T;
@@ -24,11 +25,23 @@ namespace TriangleApp {
             VkInstance VKInstance;
             VkPhysicalDevice VKPhysicalDevice = VK_NULL_HANDLE;
             VkDevice VKDevice;
-            VkQueue VKQueue;
+            VkQueue VKGraphicsQueue;
+            VkQueue VKPresentQueue;
             VkDebugUtilsMessengerEXT DebugMessenger;
+            VkSwapchainKHR VKSwapChain;
+            VkSurfaceKHR VKSurface;
+
+            VkFormat SwapChainImageFormat;
+            VkExtent2D SwapChainExtent;
+
+            std::vector<VkImage> SwapChainImages;
 
             const std::vector<const char*> validationLayers = {
                 "VK_LAYER_KHRONOS_validation"
+            };
+
+            const std::vector<const char*> deviceExtensions = {
+                VK_KHR_SWAPCHAIN_EXTENSION_NAME
             };
 
 #ifdef NDEBUG
@@ -40,10 +53,21 @@ namespace TriangleApp {
             void InitWindow();
 
             void InitVulkan();
+
+#pragma region Device
             void pickPhysicalDevice();
             void createLogicalDevice();
             bool isDeviceSuitable(VkPhysicalDevice device);
+            bool checkDeviceExtensionsSupport(VkPhysicalDevice device) const;
             FQueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+            FSwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+#pragma endregion
+
+            VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+            VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+            VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+            void createSurface();
+            void createSwapChain();
 
             void CreateInstance();
 
