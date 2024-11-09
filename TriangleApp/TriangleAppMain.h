@@ -36,6 +36,7 @@ namespace TriangleApp {
 
             VkRenderPass VKRenderPass;
             VkPipelineLayout pipelineLayout;
+            VkPipeline VKPipeline;
 
             std::vector<VkImage> SwapChainImages;
             std::vector<VkImageView> SwapChainImageViews;
