@@ -35,6 +35,7 @@ namespace TriangleApp {
             VkExtent2D SwapChainExtent;
 
             std::vector<VkImage> SwapChainImages;
+            std::vector<VkImageView> SwapChainImageViews;
 
             const std::vector<const char*> validationLayers = {
                 "VK_LAYER_KHRONOS_validation"
@@ -68,6 +69,8 @@ namespace TriangleApp {
             VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
             void createSurface();
             void createSwapChain();
+
+            void createImageViews();
 
             void CreateInstance();
 
