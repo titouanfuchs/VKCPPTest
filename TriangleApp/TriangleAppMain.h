@@ -38,8 +38,13 @@ namespace TriangleApp {
             VkPipelineLayout pipelineLayout;
             VkPipeline VKPipeline;
 
+            VkCommandPool VKCommandPool;
+            VkCommandBuffer VKCommandBuffer;
+
             std::vector<VkImage> SwapChainImages;
             std::vector<VkImageView> SwapChainImageViews;
+
+            std::vector<VkFramebuffer> swapChainFramebuffers;
 
             const std::vector<const char*> validationLayers = {
                 "VK_LAYER_KHRONOS_validation"
@@ -93,6 +98,20 @@ namespace TriangleApp {
             void createRenderPass();
 
 #pragma endregion
+
+#pragma region Framebuffers
+            void createFramebuffers();
+#pragma endregion
+
+#pragma region Render Commands
+
+            void createCommandPool();
+            void createCommandBuffer();
+
+            void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+#pragma endregion
+
 #pragma region Debug
 
             void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerCreateInfo);

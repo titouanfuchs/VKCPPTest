@@ -48,6 +48,9 @@ namespace TriangleApp {
         createImageViews();
         createRenderPass();
         createGraphicsPipeline();
+        createFramebuffers();
+        createCommandPool();
+        createCommandBuffer();
     }
 
     void TriangleAppMain::pickPhysicalDevice() {
@@ -382,6 +385,12 @@ namespace TriangleApp {
     void TriangleAppMain::Cleanup() {
         std::cout << "End" << std::endl;
 
+        vkDestroyCommandPool(VKDevice, VKCommandPool, nullptr);
+
+        for (auto framebuffer : swapChainFramebuffers) {
+            vkDestroyFramebuffer(VKDevice, framebuffer, nullptr);
+        }
+
         vkDestroyPipeline(VKDevice, VKPipeline, nullptr);
         vkDestroyPipelineLayout(VKDevice, pipelineLayout, nullptr);
         vkDestroyRenderPass(VKDevice, VKRenderPass, nullptr);
@@ -441,6 +450,7 @@ namespace TriangleApp {
 
         return extensions;
     }
+#pragma endregion
 
     VkShaderModule TriangleAppMain::createShaderModule(const std::vector<char> &code) {
         VkShaderModuleCreateInfo createInfo{};
@@ -628,7 +638,97 @@ namespace TriangleApp {
             throw std::runtime_error("failed to create render pass!");
         }
     }
-#pragma endregion
+
+    void TriangleAppMain::createFramebuffers() {
+        swapChainFramebuffers.resize(SwapChainImageViews.size());
+
+        for (size_t i = 0; i < SwapChainImageViews.size(); i++) {
+            VkImageView attachments[] = {
+                SwapChainImageViews[i]
+            };
+
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = VKRenderPass;
+            framebufferInfo.attachmentCount = 1;
+            framebufferInfo.pAttachments = attachments;
+            framebufferInfo.width = SwapChainExtent.width;
+            framebufferInfo.height = SwapChainExtent.height;
+            framebufferInfo.layers = 1;
+
+            if (vkCreateFramebuffer(VKDevice, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
+                throw std::runtime_error("failed to create framebuffer!");
+        }
+    }
+
+    void TriangleAppMain::createCommandPool() {
+        FQueueFamilyIndices queueFamilyIndices = findQueueFamilies(VKPhysicalDevice);
+
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+        if (vkCreateCommandPool(VKDevice, &poolInfo, nullptr, &VKCommandPool) != VK_SUCCESS)
+            throw std::runtime_error("failed to create command pool!");
+    }
+
+    void TriangleAppMain::createCommandBuffer() {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = VKCommandPool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
+
+        if (vkAllocateCommandBuffers(VKDevice, &allocInfo, &VKCommandBuffer) != VK_SUCCESS)
+            throw std::runtime_error("failed to allocate command buffers!");
+    }
+
+    void TriangleAppMain::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = 0;
+        beginInfo.pInheritanceInfo = nullptr;
+
+        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
+            throw std::runtime_error("failed to begin recording command buffer!");
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = VKRenderPass;
+        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = SwapChainExtent;
+
+        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, VKPipeline);
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(SwapChainExtent.width);
+        viewport.height = static_cast<float>(SwapChainExtent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = SwapChainExtent;
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+        vkCmdEndRenderPass(commandBuffer);
+
+        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+            throw std::runtime_error("failed to record command buffer!");
+    }
 
 #pragma region Debug
     void TriangleAppMain::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &messengerCreateInfo) {
