@@ -34,6 +34,9 @@ namespace TriangleApp {
             VkFormat SwapChainImageFormat;
             VkExtent2D SwapChainExtent;
 
+            VkRenderPass VKRenderPass;
+            VkPipelineLayout pipelineLayout;
+
             std::vector<VkImage> SwapChainImages;
             std::vector<VkImageView> SwapChainImageViews;
 
@@ -85,6 +88,8 @@ namespace TriangleApp {
             VkShaderModule createShaderModule(const std::vector<char>& code);
 
             void createGraphicsPipeline();
+
+            void createRenderPass();
 
 #pragma endregion
 #pragma region Debug
