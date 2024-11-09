@@ -80,6 +80,13 @@ namespace TriangleApp {
             bool checkValidationLayerSupport() const;
             std::vector<const char*> getRequiredExtensions() const;
 
+#pragma region Render Pipeline
+
+            VkShaderModule createShaderModule(const std::vector<char>& code);
+
+            void createGraphicsPipeline();
+
+#pragma endregion
 #pragma region Debug
 
             void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& messengerCreateInfo);

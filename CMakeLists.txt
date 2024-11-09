@@ -8,6 +8,8 @@ find_package(glfw3 REQUIRED FATAL_ERROR)
 
 add_executable(VKCPPTest main.cpp TriangleApp/TriangleAppMain.h TriangleApp/TriangleAppMain.cpp
         TriangleApp/FQueueFamilyIndices.h
-        TriangleApp/FSwapChainSupportDetails.h)
+        TriangleApp/FSwapChainSupportDetails.h
+        TriangleApp/Shaders/Helpers/ShaderHelper.cpp
+        TriangleApp/Shaders/Helpers/ShaderHelper.h)
 
 target_link_libraries(VKCPPTest glfw vulkan)
