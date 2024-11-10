@@ -31,9 +31,11 @@ namespace TriangleApp {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         Window = glfwCreateWindow(WIDTH, HEIGHT, "Triangle App", nullptr, nullptr);
+        glfwSetWindowUserPointer(Window, this);
+        glfwSetFramebufferSizeCallback(Window, framebufferResizeCallback);
     }
 
     void TriangleAppMain::InitVulkan() {
@@ -301,6 +303,30 @@ namespace TriangleApp {
         vkGetSwapchainImagesKHR(VKDevice, VKSwapChain, &imageCount, SwapChainImages.data());
     }
 
+    void TriangleAppMain::cleanupSwapChain() {
+        for(size_t i = 0; i < swapChainFramebuffers.size(); i++) {
+            vkDestroyFramebuffer(VKDevice, swapChainFramebuffers[i], nullptr);
+        }
+
+        for (size_t i = 0; i < SwapChainImageViews.size(); i++) {
+            vkDestroyImageView(VKDevice, SwapChainImageViews[i], nullptr);
+        }
+
+        vkDestroySwapchainKHR(VKDevice, VKSwapChain, nullptr);
+    }
+
+    void TriangleAppMain::recreateSwapChain() {
+        vkDeviceWaitIdle(VKDevice);
+
+        cleanupSwapChain();
+
+        createSwapChain();
+        createImageViews();
+        createFramebuffers();
+
+        std::cout << "[INFO] Swap chain recreated" << std::endl;
+    }
+
     void TriangleAppMain::createImageViews() {
         SwapChainImageViews.resize(SwapChainImages.size());
 
@@ -394,7 +420,9 @@ namespace TriangleApp {
     void TriangleAppMain::Cleanup() {
         std::cout << "End" << std::endl;
 
-        for (size_t i = 0; i < SwapChainImages.size(); i++) {
+        cleanupSwapChain();
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(VKDevice, imageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(VKDevice, renderFinishedSemaphores[i], nullptr);
             vkDestroyFence(VKDevice, inFlightFences[i], nullptr);
@@ -402,19 +430,10 @@ namespace TriangleApp {
 
         vkDestroyCommandPool(VKDevice, VKCommandPool, nullptr);
 
-        for (auto framebuffer : swapChainFramebuffers) {
-            vkDestroyFramebuffer(VKDevice, framebuffer, nullptr);
-        }
-
         vkDestroyPipeline(VKDevice, VKPipeline, nullptr);
         vkDestroyPipelineLayout(VKDevice, pipelineLayout, nullptr);
         vkDestroyRenderPass(VKDevice, VKRenderPass, nullptr);
 
-        for(auto imageView : SwapChainImageViews) {
-            vkDestroyImageView(VKDevice, imageView, nullptr);
-        }
-
-        vkDestroySwapchainKHR(VKDevice, VKSwapChain, nullptr);
         vkDestroyDevice(VKDevice, nullptr);
 
         if (enableValidationLayers)
@@ -690,6 +709,12 @@ namespace TriangleApp {
                 throw std::runtime_error("failed to create framebuffer!");
         }
     }
+
+    void TriangleAppMain::framebufferResizeCallback(GLFWwindow *window, int width, int height) {
+        auto app = reinterpret_cast<TriangleAppMain*>(glfwGetWindowUserPointer(window));
+
+        app->framebufferResized = true;
+    }
 #pragma endregion
 
 #pragma region Render Commands
@@ -790,10 +815,17 @@ namespace TriangleApp {
 
     void TriangleAppMain::drawFrame() {
         vkWaitForFences(VKDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-        vkResetFences(VKDevice, 1, &inFlightFences[currentFrame]);
 
         uint32_t imageIndex = 0;
-        vkAcquireNextImageKHR(VKDevice, VKSwapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(VKDevice, VKSwapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            recreateSwapChain();
+            return;
+        }else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+            throw std::runtime_error("failed to acquire swap chain image!");
+
+        vkResetFences(VKDevice, 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(VKCommandBuffers[currentFrame], 0);
         recordCommandBuffer(VKCommandBuffers[currentFrame], imageIndex);
@@ -827,7 +859,13 @@ namespace TriangleApp {
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.pResults = nullptr;
 
-        vkQueuePresentKHR(VKPresentQueue, &presentInfo);
+        result = vkQueuePresentKHR(VKPresentQueue, &presentInfo);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
+            framebufferResized = false;
+            recreateSwapChain();
+        }else if (result != VK_SUCCESS)
+            throw std::runtime_error("failed to present swap chain image!");
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }

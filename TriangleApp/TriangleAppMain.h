@@ -52,6 +52,8 @@ namespace TriangleApp {
 
             std::vector<VkFramebuffer> swapChainFramebuffers;
 
+            bool framebufferResized = false;
+
             uint32_t currentFrame = 0;
 
             const std::vector<const char*> validationLayers = {
@@ -86,6 +88,8 @@ namespace TriangleApp {
             VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
             void createSurface();
             void createSwapChain();
+            void cleanupSwapChain();
+            void recreateSwapChain();
 
             void createImageViews();
 
@@ -109,6 +113,8 @@ namespace TriangleApp {
 
 #pragma region Framebuffers
             void createFramebuffers();
+
+            static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 #pragma endregion
 
 #pragma region Render Commands
