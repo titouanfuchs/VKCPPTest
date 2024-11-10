@@ -51,6 +51,7 @@ namespace TriangleApp {
         createFramebuffers();
         createCommandPool();
         createCommandBuffer();
+        createSyncObjects();
     }
 
     void TriangleAppMain::pickPhysicalDevice() {
@@ -170,6 +171,10 @@ namespace TriangleApp {
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, VKSurface, &presentSupport);
 
             if (presentSupport) indices.presentFamily = i;
+
+            if (indices.isComplete()) {
+                break;
+            }
 
             i++;
         }
@@ -378,12 +383,19 @@ namespace TriangleApp {
     void TriangleAppMain::MainLoop() {
         std::cout << "Main loop" << std::endl;
 
-        while(!glfwWindowShouldClose(Window))
+        while(!glfwWindowShouldClose(Window)) {
             glfwPollEvents();
+            drawFrame();
+        }
+
     }
 
     void TriangleAppMain::Cleanup() {
         std::cout << "End" << std::endl;
+
+        vkDestroySemaphore(VKDevice, imageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(VKDevice, renderFinishedSemaphore, nullptr);
+        vkDestroyFence(VKDevice, inFlightFence, nullptr);
 
         vkDestroyCommandPool(VKDevice, VKCommandPool, nullptr);
 
@@ -451,6 +463,8 @@ namespace TriangleApp {
         return extensions;
     }
 #pragma endregion
+
+#pragma region Render Pipeline
 
     VkShaderModule TriangleAppMain::createShaderModule(const std::vector<char> &code) {
         VkShaderModuleCreateInfo createInfo{};
@@ -634,11 +648,24 @@ namespace TriangleApp {
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
 
+        VkSubpassDependency dependency{};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstStageMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &dependency;
+
         if (vkCreateRenderPass(VKDevice, &renderPassInfo, nullptr, &VKRenderPass) != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
     }
+#pragma endregion
 
+#pragma region Frame buffer
     void TriangleAppMain::createFramebuffers() {
         swapChainFramebuffers.resize(SwapChainImageViews.size());
 
@@ -660,7 +687,9 @@ namespace TriangleApp {
                 throw std::runtime_error("failed to create framebuffer!");
         }
     }
+#pragma endregion
 
+#pragma region Render Commands
     void TriangleAppMain::createCommandPool() {
         FQueueFamilyIndices queueFamilyIndices = findQueueFamilies(VKPhysicalDevice);
 
@@ -729,6 +758,66 @@ namespace TriangleApp {
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
             throw std::runtime_error("failed to record command buffer!");
     }
+#pragma endregion
+
+#pragma region Drawing
+
+    void TriangleAppMain::createSyncObjects() {
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+        if (vkCreateSemaphore(VKDevice, &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS
+            || vkCreateSemaphore(VKDevice, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS
+            || vkCreateFence(VKDevice, &fenceInfo, nullptr, &inFlightFence) != VK_SUCCESS)
+            throw std::runtime_error("failed to create sync objects");
+    }
+
+    void TriangleAppMain::drawFrame() {
+        vkWaitForFences(VKDevice, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+        vkResetFences(VKDevice, 1, &inFlightFence);
+
+        uint32_t imageIndex = 0;
+        vkAcquireNextImageKHR(VKDevice, VKSwapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+        vkResetCommandBuffer(VKCommandBuffer, 0);
+        recordCommandBuffer(VKCommandBuffer, imageIndex);
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &VKCommandBuffer;
+
+        VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        if (vkQueueSubmit(VKGraphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS)
+            throw std::runtime_error("failed to submit draw command buffer !");
+
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+
+        VkSwapchainKHR swapChains[] = {VKSwapChain};
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapChains;
+        presentInfo.pImageIndices = &imageIndex;
+        presentInfo.pResults = nullptr;
+
+        vkQueuePresentKHR(VKPresentQueue, &presentInfo);
+    }
+#pragma endregion
 
 #pragma region Debug
     void TriangleAppMain::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &messengerCreateInfo) {

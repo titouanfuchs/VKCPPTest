@@ -41,6 +41,10 @@ namespace TriangleApp {
             VkCommandPool VKCommandPool;
             VkCommandBuffer VKCommandBuffer;
 
+            VkSemaphore imageAvailableSemaphore;
+            VkSemaphore renderFinishedSemaphore;
+            VkFence inFlightFence;
+
             std::vector<VkImage> SwapChainImages;
             std::vector<VkImageView> SwapChainImageViews;
 
@@ -110,6 +114,12 @@ namespace TriangleApp {
 
             void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
+#pragma endregion
+
+#pragma region Drawing
+    void createSyncObjects();
+
+    void drawFrame();
 #pragma endregion
 
 #pragma region Debug
