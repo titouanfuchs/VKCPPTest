@@ -17,6 +17,8 @@ namespace TriangleApp {
             static constexpr uint32_t WIDTH = 1920;
             static constexpr uint32_t HEIGHT = 1080;
 
+            static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
             void Run();
 
         private:
@@ -39,16 +41,18 @@ namespace TriangleApp {
             VkPipeline VKPipeline;
 
             VkCommandPool VKCommandPool;
-            VkCommandBuffer VKCommandBuffer;
+            std::vector<VkCommandBuffer> VKCommandBuffers;
 
-            VkSemaphore imageAvailableSemaphore;
-            VkSemaphore renderFinishedSemaphore;
-            VkFence inFlightFence;
+            std::vector<VkSemaphore> imageAvailableSemaphores;
+            std::vector<VkSemaphore> renderFinishedSemaphores;
+            std::vector<VkFence> inFlightFences;
 
             std::vector<VkImage> SwapChainImages;
             std::vector<VkImageView> SwapChainImageViews;
 
             std::vector<VkFramebuffer> swapChainFramebuffers;
+
+            uint32_t currentFrame = 0;
 
             const std::vector<const char*> validationLayers = {
                 "VK_LAYER_KHRONOS_validation"
@@ -110,7 +114,7 @@ namespace TriangleApp {
 #pragma region Render Commands
 
             void createCommandPool();
-            void createCommandBuffer();
+            void createCommandBuffers();
 
             void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
