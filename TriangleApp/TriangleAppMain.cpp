@@ -388,6 +388,7 @@ namespace TriangleApp {
             drawFrame();
         }
 
+        vkDeviceWaitIdle(VKDevice);
     }
 
     void TriangleAppMain::Cleanup() {
