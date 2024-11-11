@@ -316,6 +316,23 @@ namespace TriangleApp {
     }
 
     void TriangleAppMain::recreateSwapChain() {
+        int width = 0, height = 0;
+
+        glfwGetFramebufferSize(Window, &width, &height);
+
+        bool minimized = false;
+
+        while (width == 0 || height == 0) {
+
+            if (!minimized) {
+                std::cout << "[INFO] Minimized..." << std::endl;
+                minimized = true;
+            }
+
+            glfwGetFramebufferSize(Window, &width, &height);
+            glfwWaitEvents();
+        }
+
         vkDeviceWaitIdle(VKDevice);
 
         cleanupSwapChain();
