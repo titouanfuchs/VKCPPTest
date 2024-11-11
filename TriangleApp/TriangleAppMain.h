@@ -4,6 +4,10 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
+#include "Geometry/FVertex.h"
+
+using TriangleApp::Geometry::FVertex;
+
 struct FSwapChainSupportDetails;
 struct FQueueFamilyIndices;
 class GLFWwindow;
@@ -38,7 +42,7 @@ namespace TriangleApp {
 
             VkRenderPass VKRenderPass;
             VkPipelineLayout pipelineLayout;
-            VkPipeline VKPipeline;
+            VkPipeline VKGraphicsPipeline;
 
             VkCommandPool VKCommandPool;
             std::vector<VkCommandBuffer> VKCommandBuffers;
@@ -52,6 +56,9 @@ namespace TriangleApp {
 
             std::vector<VkFramebuffer> swapChainFramebuffers;
 
+            VkBuffer VKVertexBuffer;
+            VkDeviceMemory VKVertexBufferMemory;
+
             bool framebufferResized = false;
 
             uint32_t currentFrame = 0;
@@ -62,6 +69,12 @@ namespace TriangleApp {
 
             const std::vector<const char*> deviceExtensions = {
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME
+            };
+
+            const std::vector<FVertex> vertices = {
+                {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+                {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
             };
 
 #ifdef NDEBUG
@@ -83,6 +96,8 @@ namespace TriangleApp {
             FSwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 #pragma endregion
 
+#pragma region SwapChain & Surface
+
             VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
             VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
             VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
@@ -92,6 +107,8 @@ namespace TriangleApp {
             void recreateSwapChain();
 
             void createImageViews();
+
+#pragma endregion
 
             void CreateInstance();
 
@@ -123,6 +140,12 @@ namespace TriangleApp {
             void createCommandBuffers();
 
             void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+#pragma endregion
+
+#pragma region VertexBuffer
+
+            void createVertexBuffer();
 
 #pragma endregion
 

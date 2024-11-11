@@ -1,6 +1,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include "TriangleAppMain.h"
 
+#include <array>
 #include <cstring>
 #include <GLFW/glfw3.h>
 
@@ -12,6 +13,7 @@
 
 #include "FQueueFamilyIndices.h"
 #include "FSwapChainSupportDetails.h"
+#include "Memory/MemoryHelper.h"
 #include "Shaders/Helpers/ShaderHelper.h"
 
 using TriangleApp::Shader::ShaderHelper;
@@ -52,6 +54,7 @@ namespace TriangleApp {
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPool();
+        createVertexBuffer();
         createCommandBuffers();
         createSyncObjects();
     }
@@ -439,6 +442,11 @@ namespace TriangleApp {
 
         cleanupSwapChain();
 
+        vkDestroyBuffer(VKDevice, VKVertexBuffer, nullptr);
+        vkFreeMemory(VKDevice, VKVertexBufferMemory, nullptr);
+
+        vkDestroyBuffer(VKDevice, VKVertexBuffer, nullptr);
+
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(VKDevice, imageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(VKDevice, renderFinishedSemaphores[i], nullptr);
@@ -447,7 +455,7 @@ namespace TriangleApp {
 
         vkDestroyCommandPool(VKDevice, VKCommandPool, nullptr);
 
-        vkDestroyPipeline(VKDevice, VKPipeline, nullptr);
+        vkDestroyPipeline(VKDevice, VKGraphicsPipeline, nullptr);
         vkDestroyPipelineLayout(VKDevice, pipelineLayout, nullptr);
         vkDestroyRenderPass(VKDevice, VKRenderPass, nullptr);
 
@@ -549,12 +557,15 @@ namespace TriangleApp {
         dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
         dynamicState.pDynamicStates = dynamicStates.data();
 
+        auto bindingDescriptions = FVertex::getBindingDescription();
+        auto attributeDescriptions = FVertex::getAttributesDescriptions();
+
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 0;
-        vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-        vertexInputInfo.vertexAttributeDescriptionCount = 0;
-        vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescriptions;
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -652,7 +663,7 @@ namespace TriangleApp {
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
         pipelineInfo.basePipelineIndex = -1; // Optional
 
-        if (vkCreateGraphicsPipelines(VKDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &VKPipeline) != VK_SUCCESS)
+        if (vkCreateGraphicsPipelines(VKDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &VKGraphicsPipeline) != VK_SUCCESS)
             throw std::runtime_error("failed to create graphics pipeline!");
 
         vkDestroyShaderModule(VKDevice, fragShaderModule, nullptr);
@@ -783,7 +794,13 @@ namespace TriangleApp {
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, VKPipeline);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, VKGraphicsPipeline);
+
+        VkBuffer vertexBuffers[] = {VKVertexBuffer};
+        VkDeviceSize offsets[] = {0};
+
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 
         VkViewport viewport{};
         viewport.x = 0.0f;
@@ -808,6 +825,36 @@ namespace TriangleApp {
     }
 #pragma endregion
 
+#pragma region VertexBuffer
+    void TriangleAppMain::createVertexBuffer() {
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateBuffer(VKDevice, &bufferInfo, nullptr, &VKVertexBuffer) != VK_SUCCESS)
+            throw std::runtime_error("failed to create vertex buffer!");
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(VKDevice, VKVertexBuffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = Memory::MemoryHelper::findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VKPhysicalDevice);
+
+        if (vkAllocateMemory(VKDevice, &allocInfo, nullptr, &VKVertexBufferMemory) != VK_SUCCESS)
+            throw std::runtime_error("failed to allocate vertex buffer memory!");
+
+        vkBindBufferMemory(VKDevice, VKVertexBuffer, VKVertexBufferMemory, 0);
+
+        void* data;
+        vkMapMemory(VKDevice, VKVertexBufferMemory, 0, bufferInfo.size, 0 ,&data);
+        memcpy(data, vertices.data(), (size_t) bufferInfo.size);
+        vkUnmapMemory(VKDevice, VKVertexBufferMemory);
+    }
+#pragma endregion
 #pragma region Drawing
 
     void TriangleAppMain::createSyncObjects() {
