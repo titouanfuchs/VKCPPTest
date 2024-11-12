@@ -813,7 +813,7 @@ namespace TriangleApp {
         scissor.offset = {0, 0};
         scissor.extent = SwapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-        
+
         vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 
         vkCmdEndRenderPass(commandBuffer);
