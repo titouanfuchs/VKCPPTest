@@ -10,6 +10,10 @@ add_executable(VKCPPTest main.cpp TriangleApp/TriangleAppMain.h TriangleApp/Tria
         TriangleApp/FQueueFamilyIndices.h
         TriangleApp/FSwapChainSupportDetails.h
         TriangleApp/Shaders/Helpers/ShaderHelper.cpp
-        TriangleApp/Shaders/Helpers/ShaderHelper.h)
+        TriangleApp/Shaders/Helpers/ShaderHelper.h
+        TriangleApp/Geometry/FVertex.h
+        TriangleApp/Geometry/FVertex.cpp
+        TriangleApp/Memory/MemoryHelper.cpp
+        TriangleApp/Memory/MemoryHelper.h)
 
 target_link_libraries(VKCPPTest glfw vulkan)
