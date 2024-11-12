@@ -130,7 +130,6 @@ namespace TriangleApp {
 
 #pragma region Framebuffers
             void createFramebuffers();
-
             static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 #pragma endregion
 
@@ -146,6 +145,15 @@ namespace TriangleApp {
 #pragma region VertexBuffer
 
             void createVertexBuffer();
+
+             void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
+
+#pragma endregion
+
+#pragma region Buffer
+
+        void copyBuffer (VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
 #pragma endregion
 
