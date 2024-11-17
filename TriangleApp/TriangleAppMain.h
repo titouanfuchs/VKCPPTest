@@ -59,6 +59,9 @@ namespace TriangleApp {
             VkBuffer VKVertexBuffer;
             VkDeviceMemory VKVertexBufferMemory;
 
+            VkBuffer VKIndexBuffer;
+            VkDeviceMemory VKIndexBufferMemory;
+
             bool framebufferResized = false;
 
             uint32_t currentFrame = 0;
@@ -72,9 +75,14 @@ namespace TriangleApp {
             };
 
             const std::vector<FVertex> vertices = {
-                {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-                {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+                {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+                {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+                {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+            };
+
+            const std::vector<uint16_t> indices = {
+                0,1,2,2,3,0
             };
 
 #ifdef NDEBUG
@@ -145,8 +153,9 @@ namespace TriangleApp {
 #pragma region VertexBuffer
 
             void createVertexBuffer();
+            void createIndexBuffer();
 
-             void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+            void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
 
 #pragma endregion

@@ -55,6 +55,7 @@ namespace TriangleApp {
         createFramebuffers();
         createCommandPool();
         createVertexBuffer();
+        createIndexBuffer();
         createCommandBuffers();
         createSyncObjects();
     }
@@ -800,6 +801,7 @@ namespace TriangleApp {
         VkDeviceSize offsets[] = {0};
 
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, VKIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -814,7 +816,10 @@ namespace TriangleApp {
         scissor.extent = SwapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+        //Without using indexBuffeer
+        //vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1,0,0,0);
 
         vkCmdEndRenderPass(commandBuffer);
 
@@ -842,8 +847,28 @@ namespace TriangleApp {
         vkFreeMemory(VKDevice, stagingBufferMemory, nullptr);
     }
 
+    void TriangleAppMain::createIndexBuffer() {
+        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+        void* data;
+        vkMapMemory(VKDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, indices.data(), bufferSize);
+        vkUnmapMemory(VKDevice, stagingBufferMemory);
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VKIndexBuffer, VKIndexBufferMemory);
+
+        copyBuffer(stagingBuffer, VKIndexBuffer, bufferSize);
+
+        vkDestroyBuffer(VKDevice, stagingBuffer, nullptr);
+        vkFreeMemory(VKDevice, stagingBufferMemory, nullptr);
+    }
+
     void TriangleAppMain::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-        VkBuffer&buffer, VkDeviceMemory&bufferMemory) {
+                                       VkBuffer&buffer, VkDeviceMemory&bufferMemory) {
 
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
