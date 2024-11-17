@@ -1,4 +1,9 @@
 #define GLFW_INCLUDE_VULKAN
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <chrono>
 #include "TriangleAppMain.h"
 
 #include <array>
@@ -13,10 +18,12 @@
 
 #include "FQueueFamilyIndices.h"
 #include "FSwapChainSupportDetails.h"
+#include "Geometry/FUniformBufferObjet.h"
 #include "Memory/MemoryHelper.h"
 #include "Shaders/Helpers/ShaderHelper.h"
 
 using TriangleApp::Shader::ShaderHelper;
+using TriangleApp::Geometry::FUniformBufferObjet;
 
 namespace TriangleApp {
 
@@ -51,11 +58,15 @@ namespace TriangleApp {
         createSwapChain();
         createImageViews();
         createRenderPass();
+        createDescriptorSetLayout();
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPool();
         createVertexBuffer();
         createIndexBuffer();
+        createUniformsBuffers();
+        createDescriptorPool();
+        createDescriptorSets();
         createCommandBuffers();
         createSyncObjects();
     }
@@ -443,6 +454,15 @@ namespace TriangleApp {
 
         cleanupSwapChain();
 
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroyBuffer(VKDevice, uniformBuffers[i], nullptr);
+            vkFreeMemory(VKDevice, uniformBuffersMemory[i], nullptr);
+        }
+
+        vkDestroyDescriptorSetLayout(VKDevice, VKDescriptorSetLayout, nullptr);
+        vkDestroyDescriptorPool(VKDevice, VKDescriptorPool, nullptr);
+        vkDestroyDescriptorSetLayout(VKDevice, VKDescriptorSetLayout, nullptr);
+
         vkDestroyBuffer(VKDevice, VKVertexBuffer, nullptr);
         vkFreeMemory(VKDevice, VKVertexBufferMemory, nullptr);
 
@@ -527,6 +547,15 @@ namespace TriangleApp {
         return shaderModule;
     }
 
+    void TriangleAppMain::createDescriptorSetLayout() {
+        VkDescriptorSetLayoutBinding uboLayoutBinding{};
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        uboLayoutBinding.pImmutableSamplers = nullptr;
+    }
+
     void TriangleAppMain::createGraphicsPipeline() {
         auto vertShaderCode = ShaderHelper::readFile("../shaders/vert.spv");
         auto fragShaderCode = ShaderHelper::readFile("../shaders/frag.spv");
@@ -599,7 +628,7 @@ namespace TriangleApp {
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.depthBiasConstantFactor = 0.0f; // Optional
         rasterizer.depthBiasClamp = 0.0f; // Optional
@@ -637,8 +666,8 @@ namespace TriangleApp {
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 0; // Optional
-        pipelineLayoutInfo.pSetLayouts = nullptr; // Optional
+        pipelineLayoutInfo.setLayoutCount = 1; // Optional
+        pipelineLayoutInfo.pSetLayouts = &VKDescriptorSetLayout; // Optional
         pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
@@ -819,6 +848,8 @@ namespace TriangleApp {
         //Without using indexBuffeer
         //vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &VKDescriptorSets[currentFrame], 0, nullptr);
+
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1,0,0,0);
 
         vkCmdEndRenderPass(commandBuffer);
@@ -865,6 +896,20 @@ namespace TriangleApp {
 
         vkDestroyBuffer(VKDevice, stagingBuffer, nullptr);
         vkFreeMemory(VKDevice, stagingBufferMemory, nullptr);
+    }
+
+    void TriangleAppMain::createUniformsBuffers() {
+        VkDeviceSize bufferSize = sizeof(FUniformBufferObjet);
+
+        uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT  | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+            vkMapMemory(VKDevice, uniformBuffersMemory[i], 0, bufferSize, 0 , &uniformBuffersMapped[i]);
+        }
+
     }
 
     void TriangleAppMain::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
@@ -930,6 +975,78 @@ namespace TriangleApp {
         vkFreeCommandBuffers(VKDevice, VKCommandPool, 1, &commandBuffer);
     }
 
+#pragma region Uniform Buffer
+    void TriangleAppMain::updateUniformBuffer(uint32_t currentImage) {
+        static auto startTime = std::chrono::high_resolution_clock::now();
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+        FUniformBufferObjet ubo{};
+        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f,  0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f ));
+        ubo.proj = glm::perspective(glm::radians(45.0f), SwapChainExtent.width / (float) SwapChainExtent.height, 0.1f, 10.f);
+        ubo.proj[1][1] *= -1;
+
+        memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+    }
+#pragma endregion
+
+#pragma region Descriptor
+    void TriangleAppMain::createDescriptorPool() {
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+        if (vkCreateDescriptorPool(VKDevice, &poolInfo, nullptr, &VKDescriptorPool) != VK_SUCCESS)
+            throw std::runtime_error("failed to create descriptor pool!");
+
+    }
+
+    void TriangleAppMain::createDescriptorSets() {
+        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, VKDescriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = VKDescriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        allocInfo.pSetLayouts = layouts.data();
+
+        VKDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+
+        if (vkAllocateDescriptorSets(VKDevice, &allocInfo, VKDescriptorSets.data()) != VK_SUCCESS)
+            throw std::runtime_error("failed to allocate descriptor sets!");
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = uniformBuffers[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(FUniformBufferObjet);
+
+            VkWriteDescriptorSet descriptorWrite{};
+            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet = VKDescriptorSets[i];
+            descriptorWrite.dstBinding = 0;
+            descriptorWrite.dstArrayElement = 0;
+            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrite.descriptorCount = 1;
+            descriptorWrite.pBufferInfo = &bufferInfo;
+            descriptorWrite.pImageInfo = nullptr;
+            descriptorWrite.pTexelBufferView = nullptr;
+
+            vkUpdateDescriptorSets(VKDevice, 1, &descriptorWrite, 0, nullptr);
+        }
+
+    }
+
+#pragma endregion
+
 #pragma endregion
 
 #pragma region Drawing
@@ -965,6 +1082,8 @@ namespace TriangleApp {
             return;
         }else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
             throw std::runtime_error("failed to acquire swap chain image!");
+
+        updateUniformBuffer(currentFrame);
 
         vkResetFences(VKDevice, 1, &inFlightFences[currentFrame]);
 

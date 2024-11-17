@@ -62,6 +62,16 @@ namespace TriangleApp {
             VkBuffer VKIndexBuffer;
             VkDeviceMemory VKIndexBufferMemory;
 
+            std::vector<VkBuffer> uniformBuffers;
+            std::vector<VkDeviceMemory> uniformBuffersMemory;
+            std::vector<void*> uniformBuffersMapped;
+
+            VkDescriptorSetLayout VKDescriptorSetLayout;
+            VkPipelineLayout VKPipelineLayout;
+
+            VkDescriptorPool VKDescriptorPool;
+            std::vector<VkDescriptorSet> VKDescriptorSets;
+
             bool framebufferResized = false;
 
             uint32_t currentFrame = 0;
@@ -130,6 +140,8 @@ namespace TriangleApp {
 
             VkShaderModule createShaderModule(const std::vector<char>& code);
 
+            void createDescriptorSetLayout();
+
             void createGraphicsPipeline();
 
             void createRenderPass();
@@ -154,6 +166,7 @@ namespace TriangleApp {
 
             void createVertexBuffer();
             void createIndexBuffer();
+            void createUniformsBuffers();
 
             void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
@@ -163,6 +176,19 @@ namespace TriangleApp {
 #pragma region Buffer
 
         void copyBuffer (VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
+#pragma endregion
+
+#pragma region Uniform Buffer
+
+            void updateUniformBuffer(uint32_t currentImage);
+
+#pragma endregion
+
+#pragma region Descriptor
+
+            void createDescriptorPool();
+            void createDescriptorSets();
 
 #pragma endregion
 
