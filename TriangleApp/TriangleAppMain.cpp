@@ -459,7 +459,7 @@ namespace TriangleApp {
             vkFreeMemory(VKDevice, uniformBuffersMemory[i], nullptr);
         }
 
-        vkDestroyDescriptorSetLayout(VKDevice, VKDescriptorSetLayout, nullptr);
+
         vkDestroyDescriptorPool(VKDevice, VKDescriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(VKDevice, VKDescriptorSetLayout, nullptr);
 
@@ -554,6 +554,15 @@ namespace TriangleApp {
         uboLayoutBinding.descriptorCount = 1;
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         uboLayoutBinding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &uboLayoutBinding;
+
+        if (vkCreateDescriptorSetLayout(VKDevice, &layoutInfo, nullptr, &VKDescriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
     }
 
     void TriangleAppMain::createGraphicsPipeline() {
@@ -984,7 +993,7 @@ namespace TriangleApp {
 
         FUniformBufferObjet ubo{};
         ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f,  0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f ));
+        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f,  0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f ));
         ubo.proj = glm::perspective(glm::radians(45.0f), SwapChainExtent.width / (float) SwapChainExtent.height, 0.1f, 10.f);
         ubo.proj[1][1] *= -1;
 
