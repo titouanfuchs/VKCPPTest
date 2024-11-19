@@ -1,7 +1,9 @@
 #define GLFW_INCLUDE_VULKAN
 #define GLM_FORCE_RADIANS
+#define STB_IMAGE_IMPLEMENTATION
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "Libs/stb_image.h"
 
 #include <chrono>
 #include "TriangleAppMain.h"
@@ -1193,4 +1195,12 @@ namespace TriangleApp {
         return VK_FALSE;
     }
 #pragma endregion
+
+#pragma region Texture
+
+    void TriangleAppMain::createTextureImage() {
+    }
+
+#pragma endregion
+
 }

@@ -16,6 +16,7 @@ add_executable(VKCPPTest main.cpp TriangleApp/TriangleAppMain.h TriangleApp/Tria
         TriangleApp/Memory/MemoryHelper.cpp
         TriangleApp/Memory/MemoryHelper.h
         TriangleApp/Geometry/FUniformBufferObjet.cpp
-        TriangleApp/Geometry/FUniformBufferObjet.h)
+        TriangleApp/Geometry/FUniformBufferObjet.h
+        TriangleApp/Libs/stb_image.h)
 
 target_link_libraries(VKCPPTest glfw vulkan)

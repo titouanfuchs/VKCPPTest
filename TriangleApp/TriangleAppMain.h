@@ -213,6 +213,12 @@ namespace TriangleApp {
                 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                 void* pUserData);
 #pragma endregion
+
+#pragma region Texture
+
+    void createTextureImage();
+
+#pragma endregion
     };
 
 }
