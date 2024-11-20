@@ -95,6 +95,9 @@ namespace TriangleApp {
                 0,1,2,2,3,0
             };
 
+            VkImage textureImage;
+            VkDeviceMemory textureImageMemory;
+
 #ifdef NDEBUG
             const bool enableValidationLayers = false;
 #else
@@ -145,6 +148,13 @@ namespace TriangleApp {
             void createGraphicsPipeline();
 
             void createRenderPass();
+
+#pragma endregion
+
+#pragma region Command Buffers
+
+            VkCommandBuffer beginSingleTimeCommandBuffer() const;
+            void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
 #pragma endregion
 
@@ -216,7 +226,10 @@ namespace TriangleApp {
 
 #pragma region Texture
 
-    void createTextureImage();
+            void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+            void createTextureImage();
+
+            void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 #pragma endregion
     };
