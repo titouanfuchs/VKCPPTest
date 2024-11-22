@@ -98,6 +98,9 @@ namespace TriangleApp {
             VkImage textureImage;
             VkDeviceMemory textureImageMemory;
 
+            VkImageView textureImageView;
+            VkSampler textureSampler;
+
 #ifdef NDEBUG
             const bool enableValidationLayers = false;
 #else
@@ -230,6 +233,12 @@ namespace TriangleApp {
             void createTextureImage();
 
             void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+            void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+            void createTextureImageView();
+
+            void createTextureSampler();
 
 #pragma endregion
     };
