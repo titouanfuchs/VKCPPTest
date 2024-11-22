@@ -85,14 +85,20 @@ namespace TriangleApp {
             };
 
             const std::vector<FVertex> vertices = {
-                {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+                {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+                {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+                {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+                {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+
+                {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+                {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+                {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+                {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
             };
 
             const std::vector<uint16_t> indices = {
-                0,1,2,2,3,0
+                0, 1, 2, 2, 3, 0,
+                4, 5, 6, 6, 7, 4
             };
 
             VkImage textureImage;
@@ -100,6 +106,10 @@ namespace TriangleApp {
 
             VkImageView textureImageView;
             VkSampler textureSampler;
+
+            VkImage depthImage;
+            VkDeviceMemory depthImageMemory;
+            VkImageView depthImageView;
 
 #ifdef NDEBUG
             const bool enableValidationLayers = false;
@@ -239,6 +249,23 @@ namespace TriangleApp {
             void createTextureImageView();
 
             void createTextureSampler();
+
+#pragma endregion
+
+#pragma region Image
+
+            VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
+
+#pragma endregion
+
+#pragma region Depth
+
+        VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+        VkFormat findDepthFormat();
+
+            static bool hasStencilComponent(VkFormat format);
+
+        void createDepthResources();
 
 #pragma endregion
     };
