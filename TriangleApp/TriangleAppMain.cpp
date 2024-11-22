@@ -466,6 +466,10 @@ namespace TriangleApp {
     void TriangleAppMain::Cleanup() {
         std::cout << "End" << std::endl;
 
+        vkDestroyImageView(VKDevice, depthImageView, nullptr);
+        vkDestroyImage(VKDevice, depthImage, nullptr);
+        vkFreeMemory(VKDevice, depthImageMemory, nullptr);
+
         cleanupSwapChain();
 
         vkDestroySampler(VKDevice, textureSampler, nullptr);
