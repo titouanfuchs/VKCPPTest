@@ -2,9 +2,12 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define STB_IMAGE_IMPLEMENTATION
+#define TINYOBJLOADER_IMPLEMENTATION
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "Libs/stb_image.h"
+#include "Libs/tiny_obj_loader.h"
+
 
 #include <chrono>
 #include "TriangleAppMain.h"
@@ -16,6 +19,7 @@
 #include <iostream>
 #include <limits>
 #include <set>
+#include <unordered_map>
 #include <vector>
 #include <bits/stl_algo.h>
 
@@ -45,7 +49,7 @@ namespace TriangleApp {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        Window = glfwCreateWindow(WIDTH, HEIGHT, "Triangle App", nullptr, nullptr);
+        Window = glfwCreateWindow(WIDTH, HEIGHT, "Not much a triangle app anymore", nullptr, nullptr);
         glfwSetWindowUserPointer(Window, this);
         glfwSetFramebufferSizeCallback(Window, framebufferResizeCallback);
     }
@@ -69,6 +73,7 @@ namespace TriangleApp {
         createTextureImage();
         createTextureImageView();
         createTextureSampler();
+        loadModel();
         createVertexBuffer();
         createIndexBuffer();
         createUniformsBuffers();
@@ -938,7 +943,7 @@ namespace TriangleApp {
         VkDeviceSize offsets[] = {0};
 
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, VKIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(commandBuffer, VKIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -1328,7 +1333,7 @@ namespace TriangleApp {
     void TriangleAppMain::createTextureImage() {
         int texWidth, texHeight, texChannels;
 
-        stbi_uc* pixels = stbi_load("../textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 
         VkDeviceSize imageSize = texWidth * texHeight * 4;
 
@@ -1552,6 +1557,49 @@ namespace TriangleApp {
         depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
         //transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    }
+
+#pragma endregion
+
+#pragma region Models
+
+
+    void TriangleAppMain::loadModel() {
+        tinyobj::attrib_t attrib;
+        std::vector<tinyobj::shape_t> shapes;
+        std::vector<tinyobj::material_t> materials;
+        std::string warn, err;
+
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str()))
+            throw std::runtime_error(warn + err);
+
+        std::unordered_map<FVertex, uint32_t> uniqueVertices{};
+
+        for (const auto& shape : shapes) {
+            for(const auto& index : shape.mesh.indices) {
+                FVertex vertex{};
+
+                vertex.pos = {
+                    attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2],
+                };
+
+                vertex.texCoord = {
+                attrib.texcoords[2 * index.texcoord_index + 0],
+                1.0f - attrib.texcoords[2 * index.texcoord_index + 1],
+                };
+
+                vertex.color = {1.0f, 1.0f, 1.0f};
+
+                if (!uniqueVertices.contains(vertex)) {
+                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                    vertices.push_back(vertex);
+                }
+
+                indices.push_back(uniqueVertices[vertex]);
+            }
+        }
     }
 
 #pragma endregion

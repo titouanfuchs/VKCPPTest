@@ -21,8 +21,15 @@ namespace TriangleApp {
             static VkVertexInputBindingDescription getBindingDescription();
 
             static std::array<VkVertexInputAttributeDescription, 3> getAttributesDescriptions();
+
+            bool operator==(const FVertex &other) const;
         };
     }
 }
 
+namespace std {
+    template<> struct hash<TriangleApp::Geometry::FVertex> {
+        size_t operator()(TriangleApp::Geometry::FVertex const& vertex) const;
+    };
+}
 #endif //FVERTEX_H
